@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Circus Walkie-Talkie Checkout</title>
     <style>
         body {
@@ -30,6 +33,16 @@
             background: rgba(0, 0, 0, 0.7);
             border-radius: 8px;
             box-shadow: 0 0 10px #ffd700;
+        }
+
+        .summary {
+            margin: 10px 0;
+            padding: 10px;
+            background: #4b0082;
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
         }
 
         .form-container {
@@ -79,7 +92,8 @@
         }
 
         .borrow-btn,
-        .return-btn {
+        .return-btn,
+        .refresh-btn {
             background: #00ced1;
             padding: 6px 12px;
             font-size: 0.8em;
@@ -87,11 +101,13 @@
         }
 
         .borrow-btn:hover,
-        .return-btn:hover {
-            background: #00a1a3;
+        .return-btn:hover,
+        .refresh-btn:hover {
+            background: #00a1a Brunswick Green;
         }
 
-        .download-btn {
+        .download-btn,
+        .refresh-btn-top {
             margin: 15px auto;
             display: block;
         }
@@ -131,6 +147,11 @@
                 font-size: 8vw;
             }
 
+            .summary {
+                font-size: 0.9em;
+                padding: 8px;
+            }
+
             input,
             button {
                 font-size: 0.9em;
@@ -153,7 +174,8 @@
 
             .archive-btn,
             .borrow-btn,
-            .return-btn {
+            .return-btn,
+            .refresh-btn {
                 font-size: 0.7em;
                 padding: 4px 8px;
             }
@@ -164,6 +186,8 @@
 <body>
     <div class="circus-container">
         <h1>Circus Walkie-Talkie Checkout</h1>
+        <div class="summary" id="summary">Checked Out: 0 / Total Unique Walkie-Talkies: 0</div>
+        <button class="refresh-btn-top" onclick="refreshPage()">Refresh</button>
         <div class="form-container">
             <input type="text" id="name" placeholder="Crew Name" required>
             <input type="text" id="walkieNumber" placeholder="Walkie-Talkie #" required>
@@ -195,8 +219,17 @@
     </div>
 
     <script>
+        // Set cache-control headers
+        if ('caches' in window) {
+            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+        }
+
         let walkieData = JSON.parse(localStorage.getItem('walkieData')) || [];
         updateTable();
+
+        function refreshPage() {
+            location.reload(true); // Force reload without cache
+        }
 
         function checkOut() {
             const name = document.getElementById('name').value;
@@ -294,23 +327,23 @@
         }
 
         function downloadArchive() {
-            const archived = walkieData.filter(w => w.archived);
+            const archived = walkieData.filter(record => record.archived);
             if (!archived.length) {
                 alert('No archived records to download.');
                 return;
             }
 
             let text = 'Circus Walkie-Talkie Archive\n\n';
-            archived.forEach(w => {
-                text += `Crew: ${w.name}\n`;
-                text += `Walkie-Talkie #: ${w.walkieNumber}\n`;
-                text += `Checked Out: ${w.checkedOut || 'N/A'}\n`;
-                text += `Checked In: ${w.checkedIn || 'N/A'}\n`;
-                text += `Duration: ${w.checkedIn ? formatDuration(w.checkedInMs - w.checkedOutMs) : 'N/A'}\n`;
-                if (w.borrowerName) {
-                    text += `Borrower: ${w.borrowerName}\n`;
-                    text += `Borrowed At: ${w.borrowedAt || 'N/A'}\n`;
-                    text += `Returned to Lender: ${w.returnedToLenderAt || 'N/A'}\n`;
+            archived.forEach(record => {
+                text += `Crew: ${record.name}\n`;
+                text += `Walkie-Talkie #: ${record.walkieNumber}\n`;
+                text += `Checked Out: ${record.checkedOut || 'N/A'}\n`;
+                text += `Checked In: ${record.checkedIn || 'N/A'}\n`;
+                text += `Duration: ${record.checkedIn ? formatDuration(record.checkedInMs - record.checkedOutMs) : 'N/A'}\n`;
+                if (record.borrowerName) {
+                    text += `Borrower: ${record.borrowerName}\n`;
+                    text += `Borrowed At: ${record.borrowedAt || 'N/A'}\n`;
+                    text += `Returned to Lender: ${record.returnedToLenderAt || 'N/A'}\n`;
                 }
                 text += '------------------------\n';
             });
@@ -337,12 +370,20 @@
             return `${hours}h ${minutes}m ${secs}s`;
         }
 
+        function updateSummary() {
+            const checkedOutCount = walkieData.filter(record => !record.checkedIn && !record.archived).length;
+            const uniqueWalkies = new Set(walkieData.map(record => record.walkieNumber)).size;
+            document.getElementById('summary').textContent =
+                `Checked Out: ${checkedOutCount} / Total Unique Walkie-Talkies: ${uniqueWalkies}`;
+        }
+
         function updateTable() {
+            updateSummary();
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
             // Sort by checkedOutMs (newest first)
             const sortedData = walkieData
-                .filter(w => !w.archived)
+                .filter(record => !record.archived)
                 .sort((a, b) => b.checkedOutMs - a.checkedOutMs);
             sortedData.forEach((walkie, index) => {
                 const row = document.createElement('tr');
@@ -361,6 +402,7 @@
                 const actions = `
                     ${walkie.borrowerName && !walkie.returnedToLenderAt ? `<button class="return-btn" onclick="returnToLender(${walkieData.indexOf(walkie)})">Return to Lender</button>` : ''}
                     <button class="archive-btn" onclick="archiveRecord(${walkieData.indexOf(walkie)})">Archive</button>
+                    <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
                 `;
                 row.innerHTML = `
                     <td>${checkoutInfo}</td>
