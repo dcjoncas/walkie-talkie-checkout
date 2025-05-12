@@ -567,11 +567,12 @@
             updateSummary();
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
-            // Sort by checkedOutMs (newest first)
+            // Sort by checkedOutMs (newest first) but track original index
             const sortedData = walkieData
-                .filter(record => !record.archived)
-                .sort((a, b) => b.checkedOutMs - a.checkedOutMs);
-            sortedData.forEach((walkie, index) => {
+                .map((record, index) => ({ record, index })) // Track original index
+                .filter(({ record }) => !record.archived)
+                .sort((a, b) => b.record.checkedOutMs - a.record.checkedOutMs);
+            sortedData.forEach(({ record: walkie, index: originalIndex }) => {
                 const row = document.createElement('tr');
                 if (walkie.inactive) {
                     row.classList.add('inactive');
@@ -594,9 +595,9 @@
                     ? formatDuration(walkie.checkedInMs - walkie.checkedOutMs)
                     : formatDuration(now - walkie.checkedOutMs);
                 const actions = `
-                    ${walkie.borrowerName && !walkie.returnedToLenderAt && !walkie.inactive ? `<button class="return-btn" onclick="returnToLender(${index})">Return to Lender</button>` : ''}
-                    ${!walkie.inactive ? `<button class="oos-btn" onclick="markOutOfService(${index})">OoS</button>` : ''}
-                    <button class="archive-btn" onclick="archiveRecord(${index})">Archive</button>
+                    ${walkie.borrowerName && !walkie.returnedToLenderAt && !walkie.inactive ? `<button class="return-btn" onclick="returnToLender(${originalIndex})">Return to Lender</button>` : ''}
+                    ${!walkie.inactive ? `<button class="oos-btn" onclick="markOutOfService(${originalIndex})">OoS</button>` : ''}
+                    <button class="archive-btn" onclick="archiveRecord(${originalIndex})">Archive</button>
                 `;
                 row.innerHTML = `
                     <td>${checkoutInfo}</td>
