@@ -205,15 +205,18 @@
             border: 2px solid #ffd700;
             border-radius: 8px;
             text-align: center;
+            width: 90%;
+            max-width: 400px;
         }
 
         #scanModal video {
-            max-width: 90%;
-            max-height: 50%;
+            width: 100%;
+            max-height: 300px;
             border: 2px solid #ffd700;
             border-radius: 5px;
             margin: 10px auto;
             display: block;
+            background: #000;
         }
 
         #scanModal .action-btn {
@@ -233,6 +236,12 @@
             border-radius: 5px;
             cursor: pointer;
             margin-top: 10px;
+        }
+
+        #scanModal .error-message {
+            color: #ff4500;
+            font-size: 0.9em;
+            margin: 10px 0;
         }
 
         @media (max-width: 600px) {
@@ -275,12 +284,11 @@
             }
 
             #scanModal .modal-content {
-                width: 90%;
                 padding: 10px;
             }
 
             #scanModal video {
-                max-height: 40%;
+                max-height: 200px;
             }
         }
     </style>
@@ -330,7 +338,9 @@
             <button class="action-btn" onclick="startScan('walkieNumber')">Check Out</button>
             <button class="action-btn" onclick="startScan('checkInWalkieNumber')">Check In</button>
             <button class="action-btn" onclick="startScan('borrowWalkieNumber')">Borrow</button>
-            <video id="scanner" autoplay playsinline></video>
+            <video id="scanner" autoplay playsinline muted></video>
+            <p id="scanError" class="error-message" style="display: none;">Camera not available. Please try again or
+                enter the number manually.</p>
             <button class="close-btn" onclick="stopScan()">Close</button>
         </div>
     </div>
@@ -601,13 +611,21 @@
         // Barcode scanning functions
         function openScanModal() {
             const modal = document.getElementById('scanModal');
+            const video = document.getElementById('scanner');
+            const errorMessage = document.getElementById('scanError');
+            video.style.display = 'none'; // Hide video until scanning starts
+            errorMessage.style.display = 'none'; // Hide error message
             modal.style.display = 'flex';
         }
 
         function startScan(inputId) {
             currentInputId = inputId;
             const video = document.getElementById('scanner');
-            video.style.display = 'block';
+            const errorMessage = document.getElementById('scanError');
+            video.style.display = 'block'; // Show video for scanning
+            errorMessage.style.display = 'none'; // Hide error message
+
+            console.log('Starting Quagga for input:', inputId);
 
             Quagga.init({
                 inputStream: {
@@ -615,7 +633,10 @@
                     type: 'LiveStream',
                     target: video,
                     constraints: {
-                        facingMode: 'environment' // Use rear camera
+                        width: { min: 640, ideal: 1280, max: 1920 },
+                        height: { min: 480, ideal: 720, max: 1080 },
+                        facingMode: 'environment', // Use rear camera
+                        aspectRatio: { min: 1, max: 2 }
                     }
                 },
                 decoder: {
@@ -624,28 +645,47 @@
             }, (err) => {
                 if (err) {
                     console.error('Quagga init error:', err);
-                    alert('Failed to access camera. Please ensure camera permissions are granted.');
-                    stopScan();
+                    video.style.display = 'none';
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = `Camera error: ${err.message}. Please ensure permissions are granted or try again.`;
                     return;
                 }
+                console.log('Quagga initialized successfully');
                 Quagga.start();
+                console.log('Quagga started');
             });
 
             Quagga.onDetected((result) => {
                 const code = result.codeResult.code;
                 if (code) {
+                    console.log('Barcode detected:', code);
                     document.getElementById(currentInputId).value = code;
                     stopScan();
                 }
             });
+
+            // Monitor video stream
+            setTimeout(() => {
+                if (!video.srcObject || !video.srcObject.active) {
+                    console.warn('Video stream not active');
+                    video.style.display = 'none';
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Camera stream not available. Please try again or enter the number manually.';
+                }
+            }, 2000);
         }
 
         function stopScan() {
-            Quagga.stop();
+            if (Quagga.state && Quagga.state.running) {
+                Quagga.stop();
+                console.log('Quagga stopped');
+            }
             const modal = document.getElementById('scanModal');
             const video = document.getElementById('scanner');
+            const errorMessage = document.getElementById('scanError');
             modal.style.display = 'none';
             video.style.display = 'none';
+            errorMessage.style.display = 'none';
             currentInputId = null;
         }
 
