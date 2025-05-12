@@ -1,58 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Walkie-Talkie Checkout</title>
+    <title>Circus Walkie-Talkie Checkout</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .form-container { margin-bottom: 20px; }
-        .log { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; }
-        .log div { margin: 5px 0; }
-        button { margin-left: 10px; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #1a1a1a, #4b0082);
+            color: #fff;
+            margin: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-transform: uppercase;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .circus-container {
+            max-width: 900px;
+            margin: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            box-shadow: 0 0 15px #ffd700;
+        }
+
+        .form-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        input {
+            padding: 10px;
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            background: #333;
+            color: #fff;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #ffd700;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #e6c200;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #222;
+            border-radius: 5px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ffd700;
+            text-align: left;
+        }
+
+        th {
+            background: #4b0082;
+            color: #ffd700;
+        }
+
+        tr:nth-child(even) {
+            background: #333;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Walkie-Talkie Checkout System</h1>
-    <div class="form-container">
-        <h2>Check Out</h2>
-        <input type="text" id="name" placeholder="Enter your name" required>
-        <input type="text" id="walkieNumber" placeholder="Walkie-Talkie number" required>
-        <button onclick="checkOut()">Check Out</button>
+    <div class="circus-container">
+        <h1>Circus Walkie-Talkie Checkout</h1>
+        <div class="form-container">
+            <input type="text" id="name" placeholder="Crew Name" required>
+            <input type="text" id="walkieNumber" placeholder="Walkie-Talkie #" required>
+            <button onclick="checkOut()">Check Out</button>
+        </div>
+        <div class="form-container">
+            <input type="text" id="checkInWalkieNumber" placeholder="Walkie-Talkie #" required>
+            <button onclick="checkIn()">Check In</button>
+        </div>
+        <table id="statusTable">
+            <thead>
+                <tr>
+                    <th>Checked Out</th>
+                    <th>Checked In</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
     </div>
-    <div class="form-container">
-        <h2>Check In</h2>
-        <input type="text" id="checkInWalkieNumber" placeholder="Walkie-Talkie number" required>
-        <button onclick="checkIn()">Check In</button>
-    </div>
-    <h2>Status Log</h2>
-    <div id="log" class="log"></div>
 
     <script>
-        // Load data from localStorage or initialize empty
         let walkieData = JSON.parse(localStorage.getItem('walkieData')) || [];
-
-        // Display log on page load
-        updateLog();
+        updateTable();
 
         function checkOut() {
             const name = document.getElementById('name').value;
             const walkieNumber = document.getElementById('walkieNumber').value;
             if (!name || !walkieNumber) {
-                alert('Please enter both name and walkie-talkie number.');
+                alert('Please enter crew name and walkie-talkie number.');
                 return;
             }
 
-            const timestamp = new Date().toLocaleString();
+            const timestamp = new Date();
             walkieData.push({
                 walkieNumber,
                 name,
-                checkedOut: timestamp,
+                checkedOut: timestamp.toLocaleString(),
+                checkedOutMs: timestamp.getTime(),
                 checkedIn: null
             });
 
             saveData();
-            updateLog();
+            updateTable();
             document.getElementById('name').value = '';
             document.getElementById('walkieNumber').value = '';
         }
@@ -72,7 +152,7 @@
 
             walkie.checkedIn = new Date().toLocaleString();
             saveData();
-            updateLog();
+            updateTable();
             document.getElementById('checkInWalkieNumber').value = '';
         }
 
@@ -80,16 +160,31 @@
             localStorage.setItem('walkieData', JSON.stringify(walkieData));
         }
 
-        function updateLog() {
-            const logDiv = document.getElementById('log');
-            logDiv.innerHTML = '';
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours}h ${minutes}m ${secs}s`;
+        }
+
+        function updateTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
             walkieData.forEach(walkie => {
-                const status = walkie.checkedIn
-                    ? `Checked in at ${walkie.checkedIn}`
-                    : `Checked out at ${walkie.checkedOut}`;
-                logDiv.innerHTML += `<div>Walkie #${walkie.walkieNumber} - ${walkie.name}: ${status}</div>`;
+                const row = document.createElement('tr');
+                const now = new Date().getTime();
+                const runningTime = walkie.checkedIn ? '' : ` (Out for: ${formatDuration(now - walkie.checkedOutMs)})`;
+                const checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut}${runningTime}`;
+                const checkinInfo = walkie.checkedIn ? `Walkie #${walkie.walkieNumber}: ${walkie.checkedIn}` : '';
+                row.innerHTML = `<td>${checkoutInfo}</td><td>${checkinInfo}</td>`;
+                tableBody.appendChild(row);
             });
         }
+
+        // Update running time every second
+        setInterval(updateTable, 1000);
     </script>
 </body>
+
 </html>
