@@ -15,15 +15,26 @@ app.use(express.static('public')); // Serve frontend files
 // Initialize data file if it doesn't exist
 async function initializeData() {
     try {
-        await fs.access(dataFile);
-        console.log('data.json exists');
-    } catch {
-        console.log('Creating data.json');
-        try {
-            await fs.writeFile(dataFile, JSON.stringify([]));
-            console.log('data.json created successfully');
-        } catch (err) {
-            console.error('Failed to create data.json:', err);
+        // Check if data.json exists and is a file
+        const stats = await fs.stat(dataFile);
+        if (stats.isFile()) {
+            console.log('data.json exists and is a file');
+        } else {
+            console.error('data.json exists but is not a file (possibly a directory)');
+            throw new Error('data.json is not a file');
+        }
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            console.log('Creating data.json');
+            try {
+                await fs.writeFile(dataFile, JSON.stringify([]));
+                console.log('data.json created successfully');
+            } catch (writeErr) {
+                console.error('Failed to create data.json:', writeErr);
+                throw writeErr;
+            }
+        } else {
+            console.error('Error checking data.json:', err);
             throw err;
         }
     }
