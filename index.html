@@ -22,7 +22,7 @@
         }
 
         .circus-container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: auto;
             padding: 20px;
             background: rgba(0, 0, 0, 0.7);
@@ -104,6 +104,7 @@
                 <tr>
                     <th>Checked Out</th>
                     <th>Checked In</th>
+                    <th>Duration</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -128,7 +129,8 @@
                 name,
                 checkedOut: timestamp.toLocaleString(),
                 checkedOutMs: timestamp.getTime(),
-                checkedIn: null
+                checkedIn: null,
+                checkedInMs: null
             });
 
             saveData();
@@ -150,7 +152,9 @@
                 return;
             }
 
-            walkie.checkedIn = new Date().toLocaleString();
+            const timestamp = new Date();
+            walkie.checkedIn = timestamp.toLocaleString();
+            walkie.checkedInMs = timestamp.getTime();
             saveData();
             updateTable();
             document.getElementById('checkInWalkieNumber').value = '';
@@ -173,11 +177,13 @@
             tableBody.innerHTML = '';
             walkieData.forEach(walkie => {
                 const row = document.createElement('tr');
-                const now = new Date().getTime();
-                const runningTime = walkie.checkedIn ? '' : ` (Out for: ${formatDuration(now - walkie.checkedOutMs)})`;
-                const checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut}${runningTime}`;
+                const checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut}`;
                 const checkinInfo = walkie.checkedIn ? `Walkie #${walkie.walkieNumber}: ${walkie.checkedIn}` : '';
-                row.innerHTML = `<td>${checkoutInfo}</td><td>${checkinInfo}</td>`;
+                const now = new Date().getTime();
+                const duration = walkie.checkedIn
+                    ? formatDuration(walkie.checkedInMs - walkie.checkedOutMs)
+                    : formatDuration(now - walkie.checkedOutMs);
+                row.innerHTML = `<td>${checkoutInfo}</td><td>${checkinInfo}</td><td>${duration}</td>`;
                 tableBody.appendChild(row);
             });
         }
