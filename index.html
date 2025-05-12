@@ -68,6 +68,21 @@
             background: #e6c200;
         }
 
+        .archive-btn {
+            background: #ff4500;
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .archive-btn:hover {
+            background: #d83b01;
+        }
+
+        .download-btn {
+            margin: 15px auto;
+            display: block;
+        }
+
         .table-wrapper {
             overflow-x: auto;
             margin-top: 15px;
@@ -122,6 +137,11 @@
             td {
                 padding: 6px;
             }
+
+            .archive-btn {
+                font-size: 0.7em;
+                padding: 4px 8px;
+            }
         }
     </style>
 </head>
@@ -138,6 +158,7 @@
             <input type="text" id="checkInWalkieNumber" placeholder="Walkie-Talkie #" required>
             <button onclick="checkIn()">Check In</button>
         </div>
+        <button class="download-btn" onclick="downloadArchive()">Download Archive</button>
         <div class="table-wrapper">
             <table id="statusTable">
                 <thead>
@@ -145,6 +166,7 @@
                         <th>Checked Out</th>
                         <th>Checked In</th>
                         <th>Duration</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -171,7 +193,8 @@
                 checkedOut: timestamp.toLocaleString(),
                 checkedOutMs: timestamp.getTime(),
                 checkedIn: null,
-                checkedInMs: null
+                checkedInMs: null,
+                archived: false
             });
 
             saveData();
@@ -187,9 +210,9 @@
                 return;
             }
 
-            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn);
+            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived);
             if (!walkie) {
-                alert('Walkie-Talkie not found or already checked in.');
+                alert('Walkie-Talkie not found, already checked in, or archived.');
                 return;
             }
 
@@ -199,6 +222,38 @@
             saveData();
             updateTable();
             document.getElementById('checkInWalkieNumber').value = '';
+        }
+
+        function archiveRecord(index) {
+            walkieData[index].archived = true;
+            saveData();
+            updateTable();
+        }
+
+        function downloadArchive() {
+            const archived = walkieData.filter(w => w.archived);
+            if (!archived.length) {
+                alert('No archived records to download.');
+                return;
+            }
+
+            let text = 'Circus Walkie-Talkie Archive\n\n';
+            archived.forEach(w => {
+                text += `Crew: ${w.name}\n`;
+                text += `Walkie-Talkie #: ${w.walkieNumber}\n`;
+                text += `Checked Out: ${w.checkedOut || 'N/A'}\n`;
+                text += `Checked In: ${w.checkedIn || 'N/A'}\n`;
+                text += `Duration: ${w.checkedIn ? formatDuration(w.checkedInMs - w.checkedOutMs) : 'N/A'}\n`;
+                text += '------------------------\n';
+            });
+
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'walkie-talkie-archive.txt';
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         function saveData() {
@@ -217,7 +272,11 @@
         function updateTable() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
-            walkieData.forEach(walkie => {
+            // Sort by checkedOutMs (newest first)
+            const sortedData = walkieData
+                .filter(w => !w.archived)
+                .sort((a, b) => b.checkedOutMs - a.checkedOutMs);
+            sortedData.forEach((walkie, index) => {
                 const row = document.createElement('tr');
                 const checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut || 'N/A'}`;
                 const checkinInfo = walkie.checkedIn ? `Walkie #${walkie.walkieNumber}: ${walkie.checkedIn}` : '';
@@ -225,7 +284,12 @@
                 const duration = walkie.checkedIn
                     ? formatDuration(walkie.checkedInMs - walkie.checkedOutMs)
                     : formatDuration(now - walkie.checkedOutMs);
-                row.innerHTML = `<td>${checkoutInfo}</td><td>${checkinInfo}</td><td>${duration}</td>`;
+                row.innerHTML = `
+                    <td>${checkoutInfo}</td>
+                    <td>${checkinInfo}</td>
+                    <td>${duration}</td>
+                    <td><button class="archive-btn" onclick="archiveRecord(${walkieData.indexOf(walkie)})">Archive</button></td>
+                `;
                 tableBody.appendChild(row);
             });
         }
