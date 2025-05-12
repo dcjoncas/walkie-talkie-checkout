@@ -8,6 +8,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Circus Walkie-Talkie Checkout</title>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -89,6 +90,16 @@
 
         button:hover {
             background: #e6c200;
+        }
+
+        .scan-btn {
+            background: #00ced1;
+            margin: 15px auto;
+            display: block;
+        }
+
+        .scan-btn:hover {
+            background: #00a1a3;
         }
 
         .archive-btn {
@@ -175,6 +186,55 @@
             background: #4b0000;
         }
 
+        #scanModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #scanModal .modal-content {
+            background: #222;
+            padding: 20px;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        #scanModal video {
+            max-width: 90%;
+            max-height: 50%;
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            margin: 10px auto;
+            display: block;
+        }
+
+        #scanModal .action-btn {
+            background: #ffd700;
+            margin: 5px;
+            padding: 8px 16px;
+        }
+
+        #scanModal .action-btn:hover {
+            background: #e6c200;
+        }
+
+        #scanModal .close-btn {
+            background: #ff4500;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
         @media (max-width: 600px) {
             h1 {
                 font-size: 8vw;
@@ -213,6 +273,15 @@
                 font-size: 0.7em;
                 padding: 4px 8px;
             }
+
+            #scanModal .modal-content {
+                width: 90%;
+                padding: 10px;
+            }
+
+            #scanModal video {
+                max-height: 40%;
+            }
         }
     </style>
 </head>
@@ -224,6 +293,7 @@
         <div class="note">Note: Data is stored on the server and shared across devices. Click Refresh to load the latest
             data.</div>
         <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
+        <button class="scan-btn" onclick="openScanModal()">Scan</button>
         <div class="form-container">
             <input type="text" id="name" placeholder="Crew Name" required>
             <input type="text" id="walkieNumber" placeholder="Walkie-Talkie #" required>
@@ -254,8 +324,20 @@
         </div>
     </div>
 
+    <div id="scanModal">
+        <div class="modal-content">
+            <p>Select an action to scan the walkie-talkie barcode:</p>
+            <button class="action-btn" onclick="startScan('walkieNumber')">Check Out</button>
+            <button class="action-btn" onclick="startScan('checkInWalkieNumber')">Check In</button>
+            <button class="action-btn" onclick="startScan('borrowWalkieNumber')">Borrow</button>
+            <video id="scanner" autoplay playsinline></video>
+            <button class="close-btn" onclick="stopScan()">Close</button>
+        </div>
+    </div>
+
     <script>
         let walkieData = [];
+        let currentInputId = null;
 
         async function fetchWalkies(retryCount = 0) {
             try {
@@ -514,6 +596,57 @@
                 `;
                 tableBody.appendChild(row);
             });
+        }
+
+        // Barcode scanning functions
+        function openScanModal() {
+            const modal = document.getElementById('scanModal');
+            modal.style.display = 'flex';
+        }
+
+        function startScan(inputId) {
+            currentInputId = inputId;
+            const video = document.getElementById('scanner');
+            video.style.display = 'block';
+
+            Quagga.init({
+                inputStream: {
+                    name: 'Live',
+                    type: 'LiveStream',
+                    target: video,
+                    constraints: {
+                        facingMode: 'environment' // Use rear camera
+                    }
+                },
+                decoder: {
+                    readers: ['code_128_reader', 'ean_reader', 'upc_reader'] // Adjust based on barcode type
+                }
+            }, (err) => {
+                if (err) {
+                    console.error('Quagga init error:', err);
+                    alert('Failed to access camera. Please ensure camera permissions are granted.');
+                    stopScan();
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected((result) => {
+                const code = result.codeResult.code;
+                if (code) {
+                    document.getElementById(currentInputId).value = code;
+                    stopScan();
+                }
+            });
+        }
+
+        function stopScan() {
+            Quagga.stop();
+            const modal = document.getElementById('scanModal');
+            const video = document.getElementById('scanner');
+            modal.style.display = 'none';
+            video.style.display = 'none';
+            currentInputId = null;
         }
 
         // Initial data fetch
