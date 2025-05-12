@@ -82,18 +82,17 @@
         }
 
         .archive-btn {
-            background: #0a3eea;
+            background: #808080;
             padding: 6px 12px;
             font-size: 0.8em;
         }
 
         .archive-btn:hover {
-            background: #d83b01;
+            background: #666666;
         }
 
         .borrow-btn,
-        .return-btn,
-        .oos-btn {
+        .return-btn {
             background: #00ced1;
             padding: 6px 12px;
             font-size: 0.8em;
@@ -101,9 +100,19 @@
         }
 
         .borrow-btn:hover,
-        .return-btn:hover,
-        .oos-btn:hover {
+        .return-btn:hover {
             background: #00a1a3;
+        }
+
+        .oos-btn {
+            background: #ff0000;
+            padding: 6px 12px;
+            font-size: 0.8em;
+            margin: 0 2px;
+        }
+
+        .oos-btn:hover {
+            background: #cc0000;
         }
 
         .refresh-btn,
@@ -146,6 +155,10 @@
 
         tr:nth-child(even) {
             background: #333;
+        }
+
+        tr.active-checked-out {
+            background: #004d00;
         }
 
         tr.inactive {
@@ -414,6 +427,8 @@
                 const row = document.createElement('tr');
                 if (walkie.inactive) {
                     row.classList.add('inactive');
+                } else if (!walkie.checkedIn && !walkie.archived) {
+                    row.classList.add('active-checked-out');
                 }
                 let checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut || 'N/A'}`;
                 if (walkie.borrowerName) {
