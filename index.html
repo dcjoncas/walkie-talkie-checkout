@@ -82,7 +82,7 @@
         }
 
         .archive-btn {
-            background: #ff4500;
+            background: #0a3eea;
             padding: 6px 12px;
             font-size: 0.8em;
         }
@@ -93,7 +93,7 @@
 
         .borrow-btn,
         .return-btn,
-        .refresh-btn {
+        .oos-btn {
             background: #00ced1;
             padding: 6px 12px;
             font-size: 0.8em;
@@ -102,14 +102,20 @@
 
         .borrow-btn:hover,
         .return-btn:hover,
-        .refresh-btn:hover {
-            background: #00a1a Brunswick Green;
+        .oos-btn:hover {
+            background: #00a1a3;
         }
 
-        .download-btn,
-        .refresh-btn-top {
+        .refresh-btn,
+        .download-btn {
             margin: 15px auto;
             display: block;
+            background: #00ced1;
+        }
+
+        .refresh-btn:hover,
+        .download-btn:hover {
+            background: #00a1a3;
         }
 
         .table-wrapper {
@@ -140,6 +146,10 @@
 
         tr:nth-child(even) {
             background: #333;
+        }
+
+        tr.inactive {
+            background: #4b0000;
         }
 
         @media (max-width: 600px) {
@@ -175,7 +185,7 @@
             .archive-btn,
             .borrow-btn,
             .return-btn,
-            .refresh-btn {
+            .oos-btn {
                 font-size: 0.7em;
                 padding: 4px 8px;
             }
@@ -186,8 +196,8 @@
 <body>
     <div class="circus-container">
         <h1>Circus Walkie-Talkie Checkout</h1>
-        <div class="summary" id="summary">Checked Out: 0 / Total Unique Walkie-Talkies: 0</div>
-        <button class="refresh-btn-top" onclick="refreshPage()">Refresh</button>
+        <div class="summary" id="summary">Checked Out: 0 / Inactive: 0 / Total Unique Walkie-Talkies: 0</div>
+        <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
         <div class="form-container">
             <input type="text" id="name" placeholder="Crew Name" required>
             <input type="text" id="walkieNumber" placeholder="Walkie-Talkie #" required>
@@ -252,7 +262,8 @@
                 borrowedAtMs: null,
                 returnedToLenderAt: null,
                 returnedToLenderAtMs: null,
-                archived: false
+                archived: false,
+                inactive: false
             });
 
             saveData();
@@ -268,9 +279,9 @@
                 return;
             }
 
-            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived);
+            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive);
             if (!walkie) {
-                alert('Walkie-Talkie not found, already checked in, or archived.');
+                alert('Walkie-Talkie not found, already checked in, archived, or inactive.');
                 return;
             }
 
@@ -290,9 +301,9 @@
                 return;
             }
 
-            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.borrowerName);
+            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive && !w.borrowerName);
             if (!walkie) {
-                alert('Walkie-Talkie not found, checked in, archived, or already borrowed.');
+                alert('Walkie-Talkie not found, checked in, archived, inactive, or already borrowed.');
                 return;
             }
 
@@ -308,14 +319,26 @@
 
         function returnToLender(index) {
             const walkie = walkieData[index];
-            if (!walkie.borrowerName || walkie.returnedToLenderAt) {
-                alert('No borrower or already returned.');
+            if (!walkie.borrowerName || walkie.returnedToLenderAt || walkie.inactive) {
+                alert('No borrower, already returned, or inactive.');
                 return;
             }
 
             const timestamp = new Date();
             walkie.returnedToLenderAt = timestamp.toLocaleString();
             walkie.returnedToLenderAtMs = timestamp.getTime();
+            saveData();
+            updateTable();
+        }
+
+        function markOutOfService(index) {
+            const walkie = walkieData[index];
+            if (walkie.inactive) {
+                alert('Walkie-Talkie already marked as out of service.');
+                return;
+            }
+
+            walkie.inactive = true;
             saveData();
             updateTable();
         }
@@ -345,6 +368,7 @@
                     text += `Borrowed At: ${record.borrowedAt || 'N/A'}\n`;
                     text += `Returned to Lender: ${record.returnedToLenderAt || 'N/A'}\n`;
                 }
+                text += `Status: ${record.inactive ? 'Inactive (Out of Service)' : 'Active'}\n`;
                 text += '------------------------\n';
             });
 
@@ -371,10 +395,11 @@
         }
 
         function updateSummary() {
-            const checkedOutCount = walkieData.filter(record => !record.checkedIn && !record.archived).length;
+            const checkedOutCount = walkieData.filter(record => !record.checkedIn && !record.archived && !record.inactive).length;
+            const inactiveCount = walkieData.filter(record => record.inactive && !record.archived).length;
             const uniqueWalkies = new Set(walkieData.map(record => record.walkieNumber)).size;
             document.getElementById('summary').textContent =
-                `Checked Out: ${checkedOutCount} / Total Unique Walkie-Talkies: ${uniqueWalkies}`;
+                `Checked Out: ${checkedOutCount} / Inactive: ${inactiveCount} / Total Unique Walkie-Talkies: ${uniqueWalkies}`;
         }
 
         function updateTable() {
@@ -387,6 +412,9 @@
                 .sort((a, b) => b.checkedOutMs - a.checkedOutMs);
             sortedData.forEach((walkie, index) => {
                 const row = document.createElement('tr');
+                if (walkie.inactive) {
+                    row.classList.add('inactive');
+                }
                 let checkoutInfo = `Walkie #${walkie.walkieNumber} - ${walkie.name}: ${walkie.checkedOut || 'N/A'}`;
                 if (walkie.borrowerName) {
                     checkoutInfo += `<br>Borrower: ${walkie.borrowerName} @ ${walkie.borrowedAt || 'N/A'}`;
@@ -394,15 +422,18 @@
                         checkoutInfo += ` (Returned: ${walkie.returnedToLenderAt})`;
                     }
                 }
+                if (walkie.inactive) {
+                    checkoutInfo += ` <br>(Inactive: Out of Service)`;
+                }
                 const checkinInfo = walkie.checkedIn ? `Walkie #${walkie.walkieNumber}: ${walkie.checkedIn}` : '';
                 const now = new Date().getTime();
                 const duration = walkie.checkedIn
                     ? formatDuration(walkie.checkedInMs - walkie.checkedOutMs)
                     : formatDuration(now - walkie.checkedOutMs);
                 const actions = `
-                    ${walkie.borrowerName && !walkie.returnedToLenderAt ? `<button class="return-btn" onclick="returnToLender(${walkieData.indexOf(walkie)})">Return to Lender</button>` : ''}
+                    ${walkie.borrowerName && !walkie.returnedToLenderAt && !walkie.inactive ? `<button class="return-btn" onclick="returnToLender(${walkieData.indexOf(walkie)})">Return to Lender</button>` : ''}
+                    ${!walkie.inactive ? `<button class="oos-btn" onclick="markOutOfService(${walkieData.indexOf(walkie)})">OoS</button>` : ''}
                     <button class="archive-btn" onclick="archiveRecord(${walkieData.indexOf(walkie)})">Archive</button>
-                    <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
                 `;
                 row.innerHTML = `
                     <td>${checkoutInfo}</td>
