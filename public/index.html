@@ -221,8 +221,8 @@
     <div class="circus-container">
         <h1>Circus Walkie-Talkie Checkout</h1>
         <div class="summary" id="summary">Checked Out: 0 / Inactive: 0 / Total Unique Walkie-Talkies: 0</div>
-        <div class="note">Note: Data is stored locally on this device. Use the same device or set up a server for shared
-            data across devices.</div>
+        <div class="note">Note: Data is stored on the server and shared across devices. Click Refresh to load the latest
+            data.</div>
         <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
         <div class="form-container">
             <input type="text" id="name" placeholder="Crew Name" required>
@@ -255,19 +255,62 @@
     </div>
 
     <script>
-        // Set cache-control headers
-        if ('caches' in window) {
-            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+        let walkieData = [];
+
+        async function fetchWalkies(retryCount = 0) {
+            try {
+                const response = await fetch('/api/walkies', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}, Message: ${await response.text()}`);
+                }
+                walkieData = await response.json();
+                updateTable();
+            } catch (err) {
+                console.error('Failed to fetch walkie data:', err);
+                if (retryCount < 2) {
+                    console.log(`Retrying fetch... Attempt ${retryCount + 1}`);
+                    setTimeout(() => fetchWalkies(retryCount + 1), 1000);
+                } else {
+                    alert(`Error loading data: ${err.message}. Please check server connection and try again.`);
+                }
+            }
         }
 
-        let walkieData = JSON.parse(localStorage.getItem('walkieData')) || [];
-        updateTable();
+        async function saveWalkie(walkie) {
+            try {
+                const response = await fetch('/api/walkies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(walkie)
+                });
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                await fetchWalkies();
+            } catch (err) {
+                console.error('Failed to save walkie:', err);
+                alert(`Error saving data: ${err.message}. Please try again.`);
+            }
+        }
+
+        async function updateWalkie(index, walkie) {
+            try {
+                const response = await fetch(`/api/walkies/${index}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(walkie)
+                });
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                await fetchWalkies();
+            } catch (err) {
+                console.error('Failed to update walkie:', err);
+                alert(`Error updating data: ${err.message}. Please try again.`);
+            }
+        }
 
         function refreshPage() {
-            location.reload(true); // Force reload without cache
+            fetchWalkies(); // Reload data from server
         }
 
-        function checkOut() {
+        async function checkOut() {
             const name = document.getElementById('name').value;
             const walkieNumber = document.getElementById('walkieNumber').value;
             if (!name || !walkieNumber) {
@@ -283,7 +326,7 @@
             }
 
             const timestamp = new Date();
-            walkieData.push({
+            const newWalkie = {
                 walkieNumber,
                 name,
                 checkedOut: timestamp.toLocaleString(),
@@ -297,36 +340,35 @@
                 returnedToLenderAtMs: null,
                 archived: false,
                 inactive: false
-            });
+            };
 
-            saveData();
-            updateTable();
+            await saveWalkie(newWalkie);
             document.getElementById('name').value = '';
             document.getElementById('walkieNumber').value = '';
         }
 
-        function checkIn() {
+        async function checkIn() {
             const walkieNumber = document.getElementById('checkInWalkieNumber').value;
             if (!walkieNumber) {
                 alert('Please enter walkie-talkie number.');
                 return;
             }
 
-            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive);
-            if (!walkie) {
+            const index = walkieData.findIndex(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive);
+            if (index === -1) {
                 alert('Walkie-Talkie not found, already checked in, archived, or inactive.');
                 return;
             }
 
+            const walkie = walkieData[index];
             const timestamp = new Date();
             walkie.checkedIn = timestamp.toLocaleString();
             walkie.checkedInMs = timestamp.getTime();
-            saveData();
-            updateTable();
+            await updateWalkie(index, walkie);
             document.getElementById('checkInWalkieNumber').value = '';
         }
 
-        function borrow() {
+        async function borrow() {
             const walkieNumber = document.getElementById('borrowWalkieNumber').value;
             const borrowerName = document.getElementById('borrowerName').value;
             if (!walkieNumber || !borrowerName) {
@@ -334,23 +376,23 @@
                 return;
             }
 
-            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive && !w.borrowerName);
-            if (!walkie) {
+            const index = walkieData.findIndex(w => w.walkieNumber === walkieNumber && !w.checkedIn && !w.archived && !w.inactive && !w.borrowerName);
+            if (index === -1) {
                 alert('Walkie-Talkie not found, checked in, archived, inactive, or already borrowed.');
                 return;
             }
 
+            const walkie = walkieData[index];
             const timestamp = new Date();
             walkie.borrowerName = borrowerName;
             walkie.borrowedAt = timestamp.toLocaleString();
             walkie.borrowedAtMs = timestamp.getTime();
-            saveData();
-            updateTable();
+            await updateWalkie(index, walkie);
             document.getElementById('borrowWalkieNumber').value = '';
             document.getElementById('borrowerName').value = '';
         }
 
-        function returnToLender(index) {
+        async function returnToLender(index) {
             const walkie = walkieData[index];
             if (!walkie.borrowerName || walkie.returnedToLenderAt || walkie.inactive) {
                 alert('No borrower, already returned, or inactive.');
@@ -360,11 +402,10 @@
             const timestamp = new Date();
             walkie.returnedToLenderAt = timestamp.toLocaleString();
             walkie.returnedToLenderAtMs = timestamp.getTime();
-            saveData();
-            updateTable();
+            await updateWalkie(index, walkie);
         }
 
-        function markOutOfService(index) {
+        async function markOutOfService(index) {
             const walkie = walkieData[index];
             if (walkie.inactive) {
                 alert('Walkie-Talkie already marked as out of service.');
@@ -372,14 +413,13 @@
             }
 
             walkie.inactive = true;
-            saveData();
-            updateTable();
+            await updateWalkie(index, walkie);
         }
 
-        function archiveRecord(index) {
-            walkieData[index].archived = true;
-            saveData();
-            updateTable();
+        async function archiveRecord(index) {
+            const walkie = walkieData[index];
+            walkie.archived = true;
+            await updateWalkie(index, walkie);
         }
 
         function downloadArchive() {
@@ -412,10 +452,6 @@
             a.download = 'walkie-talkie-archive.txt';
             a.click();
             URL.revokeObjectURL(url);
-        }
-
-        function saveData() {
-            localStorage.setItem('walkieData', JSON.stringify(walkieData));
         }
 
         function formatDuration(ms) {
@@ -466,9 +502,9 @@
                     ? formatDuration(walkie.checkedInMs - walkie.checkedOutMs)
                     : formatDuration(now - walkie.checkedOutMs);
                 const actions = `
-                    ${walkie.borrowerName && !walkie.returnedToLenderAt && !walkie.inactive ? `<button class="return-btn" onclick="returnToLender(${walkieData.indexOf(walkie)})">Return to Lender</button>` : ''}
-                    ${!walkie.inactive ? `<button class="oos-btn" onclick="markOutOfService(${walkieData.indexOf(walkie)})">OoS</button>` : ''}
-                    <button class="archive-btn" onclick="archiveRecord(${walkieData.indexOf(walkie)})">Archive</button>
+                    ${walkie.borrowerName && !walkie.returnedToLenderAt && !walkie.inactive ? `<button class="return-btn" onclick="returnToLender(${index})">Return to Lender</button>` : ''}
+                    ${!walkie.inactive ? `<button class="oos-btn" onclick="markOutOfService(${index})">OoS</button>` : ''}
+                    <button class="archive-btn" onclick="archiveRecord(${index})">Archive</button>
                 `;
                 row.innerHTML = `
                     <td>${checkoutInfo}</td>
@@ -479,6 +515,9 @@
                 tableBody.appendChild(row);
             });
         }
+
+        // Initial data fetch
+        fetchWalkies();
 
         // Update running time every second
         setInterval(updateTable, 1000);
