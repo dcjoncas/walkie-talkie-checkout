@@ -45,6 +45,16 @@
             font-weight: bold;
         }
 
+        .note {
+            margin: 10px 0;
+            padding: 8px;
+            background: #333;
+            border: 1px solid #ffd700;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #ffd700;
+        }
+
         .form-container {
             margin: 15px 0;
             display: flex;
@@ -170,7 +180,8 @@
                 font-size: 8vw;
             }
 
-            .summary {
+            .summary,
+            .note {
                 font-size: 0.9em;
                 padding: 8px;
             }
@@ -210,6 +221,8 @@
     <div class="circus-container">
         <h1>Circus Walkie-Talkie Checkout</h1>
         <div class="summary" id="summary">Checked Out: 0 / Inactive: 0 / Total Unique Walkie-Talkies: 0</div>
+        <div class="note">Note: Data is stored locally on this device. Use the same device or set up a server for shared
+            data across devices.</div>
         <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
         <div class="form-container">
             <input type="text" id="name" placeholder="Crew Name" required>
@@ -259,6 +272,13 @@
             const walkieNumber = document.getElementById('walkieNumber').value;
             if (!name || !walkieNumber) {
                 alert('Please enter crew name and walkie-talkie number.');
+                return;
+            }
+
+            // Check if walkieNumber is already checked out or inactive
+            const existingWalkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.archived && (!w.checkedIn || w.inactive));
+            if (existingWalkie) {
+                alert('This walkie-talkie number is already checked out or out of service. Please use a new number.');
                 return;
             }
 
