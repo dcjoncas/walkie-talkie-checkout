@@ -1,0 +1,12 @@
+{
+  "name": "walkie-talkie-checkout",
+  "version": "1.0.0",
+  "description": "Walkie-Talkie Checkout App",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s ."
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+}

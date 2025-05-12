@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkie-Talkie Checkout</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-container { margin-bottom: 20px; }
+        .log { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; }
+        .log div { margin: 5px 0; }
+        button { margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Walkie-Talkie Checkout System</h1>
+    <div class="form-container">
+        <h2>Check Out</h2>
+        <input type="text" id="name" placeholder="Enter your name" required>
+        <input type="text" id="walkieNumber" placeholder="Walkie-Talkie number" required>
+        <button onclick="checkOut()">Check Out</button>
+    </div>
+    <div class="form-container">
+        <h2>Check In</h2>
+        <input type="text" id="checkInWalkieNumber" placeholder="Walkie-Talkie number" required>
+        <button onclick="checkIn()">Check In</button>
+    </div>
+    <h2>Status Log</h2>
+    <div id="log" class="log"></div>
+
+    <script>
+        // Load data from localStorage or initialize empty
+        let walkieData = JSON.parse(localStorage.getItem('walkieData')) || [];
+
+        // Display log on page load
+        updateLog();
+
+        function checkOut() {
+            const name = document.getElementById('name').value;
+            const walkieNumber = document.getElementById('walkieNumber').value;
+            if (!name || !walkieNumber) {
+                alert('Please enter both name and walkie-talkie number.');
+                return;
+            }
+
+            const timestamp = new Date().toLocaleString();
+            walkieData.push({
+                walkieNumber,
+                name,
+                checkedOut: timestamp,
+                checkedIn: null
+            });
+
+            saveData();
+            updateLog();
+            document.getElementById('name').value = '';
+            document.getElementById('walkieNumber').value = '';
+        }
+
+        function checkIn() {
+            const walkieNumber = document.getElementById('checkInWalkieNumber').value;
+            if (!walkieNumber) {
+                alert('Please enter walkie-talkie number.');
+                return;
+            }
+
+            const walkie = walkieData.find(w => w.walkieNumber === walkieNumber && !w.checkedIn);
+            if (!walkie) {
+                alert('Walkie-Talkie not found or already checked in.');
+                return;
+            }
+
+            walkie.checkedIn = new Date().toLocaleString();
+            saveData();
+            updateLog();
+            document.getElementById('checkInWalkieNumber').value = '';
+        }
+
+        function saveData() {
+            localStorage.setItem('walkieData', JSON.stringify(walkieData));
+        }
+
+        function updateLog() {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = '';
+            walkieData.forEach(walkie => {
+                const status = walkie.checkedIn
+                    ? `Checked in at ${walkie.checkedIn}`
+                    : `Checked out at ${walkie.checkedOut}`;
+                logDiv.innerHTML += `<div>Walkie #${walkie.walkieNumber} - ${walkie.name}: ${status}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
