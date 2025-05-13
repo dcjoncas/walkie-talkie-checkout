@@ -9,23 +9,25 @@
     <meta http-equiv="Expires" content="0">
     <title>Walkie-Talkie Checkout</title>
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1a2a44;
-            /* Dark navy */
-            --secondary: #f4f4f9;
-            /* Soft white */
-            --accent: #d4a017;
-            /* Gold */
-            --success: #2e7d32;
-            /* Green for active */
-            --danger: #d32f2f;
-            /* Red for OoS */
-            --neutral: #616161;
-            /* Grey for Archive */
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
+            --primary: #334155;
+            /* Slate blue */
+            --secondary: #ffffff;
+            /* Crisp white */
+            --accent: #a87900;
+            /* Bronze */
+            --success: #059669;
+            /* Emerald green */
+            --danger: #dc2626;
+            /* Deep red */
+            --neutral: #6b7280;
+            /* Grey */
+            --text: #1f2937;
+            /* Black text */
+            --shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            --transition: all 0.2s ease;
         }
 
         * {
@@ -35,84 +37,95 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: var(--primary);
-            color: var(--secondary);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, var(--primary), #475569);
+            color: var(--text);
             line-height: 1.6;
-            padding: 20px;
+            padding: 32px;
         }
 
         .circus-container {
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 32px;
             background: var(--secondary);
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: var(--shadow);
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.25rem;
             font-weight: 700;
             color: var(--accent);
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .summary {
             background: var(--primary);
             color: var(--secondary);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1rem;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.125rem;
             font-weight: 500;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             box-shadow: var(--shadow);
         }
 
         .note {
-            background: #e0e0e0;
-            color: var(--primary);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            background: #f3f4f6;
+            color: var(--text);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            text-align: center;
+            margin-bottom: 24px;
+            display: none;
         }
 
         .form-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 20px;
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
+            gap: 16px;
+            margin-bottom: 24px;
+            background: var(--secondary);
+            padding: 20px;
+            border-radius: 12px;
             box-shadow: var(--shadow);
         }
 
         input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
             font-size: 1rem;
-            color: var(--primary);
-            background: #f9f9f9;
+            color: var(--text);
+            background: #f9fafb;
             transition: var(--transition);
         }
 
         input:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 5px rgba(212, 160, 23, 0.3);
+            box-shadow: 0 0 6px rgba(168, 121, 0, 0.2);
         }
 
         button {
-            padding: 12px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
@@ -123,8 +136,8 @@
         .scan-btn,
         .download-btn {
             display: block;
-            width: 200px;
-            margin: 15px auto;
+            width: 220px;
+            margin: 16px auto;
             background: var(--accent);
             color: #fff;
         }
@@ -132,8 +145,8 @@
         .refresh-btn:hover,
         .scan-btn:hover,
         .download-btn:hover {
-            background: #b38814;
-            transform: translateY(-2px);
+            background: #8b6500;
+            transform: scale(1.05);
         }
 
         .form-container button {
@@ -142,85 +155,86 @@
         }
 
         .form-container button:hover {
-            background: #2a3b5a;
-            transform: translateY(-2px);
+            background: #1e3a8a;
+            transform: scale(1.05);
         }
 
         .archive-btn {
             background: var(--neutral);
             color: #fff;
-            padding: 8px 12px;
-            font-size: 0.9rem;
+            padding: 8px 16px;
+            font-size: 0.875rem;
         }
 
         .archive-btn:hover {
-            background: #4a4a4a;
+            background: #4b5563;
         }
 
         .borrow-btn,
         .return-btn {
             background: var(--accent);
             color: #fff;
-            padding: 8px 12px;
-            font-size: 0.9rem;
+            padding: 8px 16px;
+            font-size: 0.875rem;
             margin: 0 4px;
         }
 
         .borrow-btn:hover,
         .return-btn:hover {
-            background: #b38814;
+            background: #8b6500;
         }
 
         .oos-btn {
             background: var(--danger);
             color: #fff;
-            padding: 8px 12px;
-            font-size: 0.9rem;
+            padding: 8px 16px;
+            font-size: 0.875rem;
             margin: 0 4px;
         }
 
         .oos-btn:hover {
-            background: #b71c1c;
+            background: #b91c1c;
         }
 
         .table-wrapper {
             overflow-x: auto;
-            margin-top: 20px;
-            background: #fff;
-            border-radius: 8px;
+            margin-top: 24px;
+            background: var(--secondary);
+            border-radius: 12px;
             box-shadow: var(--shadow);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
+            font-size: 0.9375rem;
         }
 
         th,
         td {
-            padding: 12px;
+            padding: 16px;
             text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e5e7eb;
+            color: var(--text);
         }
 
         th {
             background: var(--primary);
             color: var(--secondary);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         tr:nth-child(even) {
-            background: #f9f9f9;
+            background: #f9fafb;
         }
 
         tr.active-checked-out {
-            background: #e8f5e9;
-            /* Light green */
+            background: #d1fae5;
+            /* Light emerald */
         }
 
         tr.inactive {
-            background: #ffebee;
+            background: #fee2e2;
             /* Light red */
         }
 
@@ -231,27 +245,27 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
 
         #scanModal .modal-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
+            background: var(--secondary);
+            padding: 24px;
+            border-radius: 12px;
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
             box-shadow: var(--shadow);
         }
 
         #scanModal video {
             width: 100%;
-            max-height: 300px;
-            border-radius: 6px;
-            margin: 10px auto;
+            max-height: 280px;
+            border-radius: 8px;
+            margin: 12px auto;
             display: block;
             background: #000;
         }
@@ -259,75 +273,85 @@
         #scanModal .action-btn {
             background: var(--accent);
             color: #fff;
-            margin: 5px;
+            margin: 6px;
             padding: 10px 20px;
         }
 
         #scanModal .action-btn:hover {
-            background: #b38814;
-            transform: translateY(-2px);
+            background: #8b6500;
+            transform: scale(1.05);
         }
 
         #scanModal .close-btn {
             background: var(--danger);
             color: #fff;
             padding: 10px 20px;
-            border-radius: 6px;
-            margin-top: 10px;
+            border-radius: 8px;
+            margin-top: 12px;
         }
 
         #scanModal .close-btn:hover {
-            background: #b71c1c;
-            transform: translateY(-2px);
+            background: #b91c1c;
+            transform: scale(1.05);
         }
 
         #scanModal .error-message {
             color: var(--danger);
-            font-size: 0.9rem;
-            margin: 10px 0;
+            font-size: 0.875rem;
+            margin: 12px 0;
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .circus-container {
+                padding: 20px;
+            }
+
             h1 {
-                font-size: 2rem;
+                font-size: 1.875rem;
             }
 
             .summary,
-            .note {
-                font-size: 1rem;
-                padding: 10px;
+            .note,
+            .error-message {
+                font-size: 0.9375rem;
+                padding: 12px;
             }
 
             input,
             button {
-                font-size: 0.9rem;
+                font-size: 0.875rem;
                 padding: 10px;
             }
 
             .form-container {
                 flex-direction: column;
-                gap: 10px;
+                gap: 12px;
+                padding: 16px;
             }
 
             table {
-                font-size: 0.85rem;
+                font-size: 0.8125rem;
             }
 
             th,
             td {
-                padding: 10px;
+                padding: 12px;
             }
 
             .archive-btn,
             .borrow-btn,
             .return-btn,
             .oos-btn {
-                font-size: 0.8rem;
-                padding: 6px 10px;
+                font-size: 0.75rem;
+                padding: 6px 12px;
             }
 
             #scanModal .modal-content {
-                padding: 15px;
+                padding: 16px;
             }
 
             #scanModal video {
@@ -343,6 +367,7 @@
         <div class="summary" id="summary">Checked Out: 0 / Inactive: 0 / Total Unique Walkie-Talkies: 0</div>
         <div class="note">Note: Data is stored on the server and shared across devices. Click Refresh to load the latest
             data.</div>
+        <div class="error-message" id="fetchError">Error: Unable to connect to server. Please try again later.</div>
         <button class="refresh-btn" onclick="refreshPage()">Refresh</button>
         <button class="scan-btn" onclick="openScanModal()">Scan</button>
         <div class="form-container">
@@ -393,8 +418,18 @@
         let currentInputId = null;
 
         async function fetchWalkies(retryCount = 0) {
+            const fetchError = document.getElementById('fetchError');
+            fetchError.style.display = 'none'; // Hide error initially
+
             try {
-                const response = await fetch('/api/walkies', { cache: 'no-store' });
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+                const response = await fetch('/api/walkies', {
+                    signal: controller.signal,
+                    cache: 'no-store'
+                });
+                clearTimeout(timeoutId);
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}, Message: ${await response.text()}`);
                 }
@@ -404,9 +439,10 @@
                 console.error('Failed to fetch walkie data:', err);
                 if (retryCount < 2) {
                     console.log(`Retrying fetch... Attempt ${retryCount + 1}`);
-                    setTimeout(() => fetchWalkies(retryCount + 1), 1000);
+                    setTimeout(() => fetchWalkies(retryCount + 1), 2000);
                 } else {
-                    alert(`Error loading data: ${err.message}. Please check server connection and try again.`);
+                    fetchError.style.display = 'block';
+                    fetchError.textContent = `Error: Unable to fetch data (${err.message}). Please check server connection and try again.`;
                 }
             }
         }
@@ -564,7 +600,7 @@
                 return;
             }
 
-            let text = 'Circus Walkie-Talkie Archive\n\n';
+            let text = 'Walkie-Talkie Archive\n\n';
             archived.forEach(record => {
                 text += `Crew: ${record.name}\n`;
                 text += `Walkie-Talkie #: ${record.walkieNumber}\n`;
